@@ -10,3 +10,4 @@ from .migrate_index import migrate_index
 from .compute import basic_compute
 from .reserved_names import import_reserved_names
 from .set_notifications_ttls import set_notifications_ttls
+from .import_given_email import import_given_email

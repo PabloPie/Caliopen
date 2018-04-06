@@ -15,7 +15,7 @@ from caliopen_cli.commands import (shell, import_email, set_notifications_ttls,
                                    setup_storage, create_user,
                                    import_vcard, dump_model, dump_indexes,
                                    inject_email, basic_compute, migrate_index,
-                                   import_reserved_names)
+                                   import_reserved_names, import_given_email)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -33,6 +33,16 @@ def main(args=sys.argv):
     sp_import.add_argument('-e', dest='email')
     sp_import.add_argument('--contact-probability', dest='contact_probability',
                            default=1.0)
+
+    sp_given = subparsers.add_parser('import_given',
+                                     help='import existing mailbox')
+    sp_given.set_defaults(func=import_given_email)
+    sp_given.add_argument('-f', dest='format', choices=['mbox', 'maildir'],
+                          default='mbox')
+    sp_given.add_argument('-p', dest='import_path')
+    sp_given.add_argument('-e', dest='email')
+    sp_given.add_argument('--contact-probability', dest='contact_probability',
+                          default=1.0)
 
     sp_import_vcard = subparsers.add_parser('import_vcard',
                                             help='import vcard')
