@@ -25,7 +25,7 @@ const mapStateToProps = createSelector(
   (messagesById, discussionId, {
     didInvalidate, messageIds, hasMore, isFetching,
   }) => {
-    const messages = messageIds.map(messageId => messagesById[messageId]);
+    const messages = messageIds.map(messageId => messagesById[messageId]).reverse();
 
     return {
       discussionId,
