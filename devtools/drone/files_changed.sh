@@ -3,8 +3,7 @@ set -e
 
 CURRENT_DIR=$(pwd)
 SRC_CHANGED="false"
-CURRENT_BRANCH=""
-TARGET_BRANCH=""
+BRANCHES=""
 
 # Images based on alpine do not contain git
 if [ -f "/etc/alpine-release" ];
@@ -14,13 +13,11 @@ fi
 
 if [ "$DRONE_BUILD_EVENT" = "pull_request" ];
 then
-	CURRENT_BRANCH="FETCH_HEAD"
-	TARGET_BRANCH=$DRONE_BRANCH
+	BRANCHES="$DRONE_BRANCH...FETCH_HEAD"
 elif [ $(git show --no-patch --format="%P" $DRONE_COMMIT | awk '{print NF}') = 2 ];
 then
 	# Two parents means merge commit
-	CURRENT_BRANCH="HEAD"
-	TARGET_BRANCH="HEAD^"
+	BRANCHES="HEAD HEAD^"
 else
 	# Any way to check changes from a direct push with multiple possible commits?
 	echo "Not a PR or a Merge, assuming change to every service"
@@ -43,12 +40,12 @@ else
 	DEPS=$BASE_DIR
 fi
 
-echo "Checking changes to $DEPS between $CURRENT_BRANCH and $TARGET_BRANCH"
+echo "Checking changes to $DEPS between $BRANCHES"
 
-if ! git --no-pager diff --quiet --exit-code $CURRENT_BRANCH $TARGET_BRANCH -- $DEPS;
+if ! git --no-pager diff --quiet --exit-code $BRANCHES -- $DEPS;
 then
 	echo "Changes found"
-    SRC_CHANGED="true"
+	SRC_CHANGED="true"
 fi
 
 cd $CURRENT_DIR
