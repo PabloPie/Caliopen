@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	. "github.com/CaliOpen/Caliopen/src/backend/defs/go-objects"
 	"github.com/CaliOpen/Caliopen/src/backend/main/go.backends/index/elasticsearch"
 	"github.com/CaliOpen/Caliopen/src/backend/main/go.backends/store/cassandra"
@@ -75,21 +76,30 @@ func identitiesMigration(cmd *cobra.Command, args []string) {
 			log.Infof("starting migration for user %d/%d", users_count, users_total)
 			var userId UUID
 			userId.UnmarshalBinary(user["user_id"].(gocql.UUID).Bytes())
-			var localId UUID
+			var localId *UUID
+			var err error
 
-			localId, err := createLocal(user, Store, erroneousUsers, userId, Rest)
-			if err != nil {
-				continue
+			// check if a local user_identity has already been created
+			localIds, err := Rest.RetrieveLocalIdentities(userId.String())
+			if err != nil || len(localIds) == 0 {
+				localId, err = createLocal(user, Store, erroneousUsers, userId, Rest)
+				if err != nil {
+					log.WithError(err).Warnf("createLocal returned error for user %s", userId.String())
+				}
+			} else {
+				localId = &(localIds[0].Id)
 			}
 
 			err = createRemotes(Store, erroneousUsers, userId, Rest)
 			if err != nil {
-				continue
+				log.WithError(err).Warnf("createRemote returned error for user %s", userId.String())
 			}
 
-			err = updateSentMessages(Store, Index, userId, Rest, erroneousMessages, localId)
-			if err != nil {
-				continue
+			if localId != nil {
+				err = updateSentMessages(Store, Index, userId, Rest, erroneousMessages, *localId)
+				if err != nil {
+					log.WithError(err).Warnf("updateSentMessages returned error for user %s", userId.String())
+				}
 			}
 		}
 		log.Info("\nAll done\n")
@@ -102,39 +112,42 @@ func identitiesMigration(cmd *cobra.Command, args []string) {
 	}
 }
 
-func createLocal(user map[string]interface{}, Store *store.CassandraBackend, erroneousUsers []string, userId UUID, Rest *REST.RESTfacility) (localId UUID, err error) {
+func createLocal(user map[string]interface{}, Store *store.CassandraBackend, erroneousUsers []string, userId UUID, Rest *REST.RESTfacility) (localId *UUID, err error) {
 	log.Info("creating UserIdentity for local")
 	local := map[string]interface{}{}
 	identifier := user["local_identities"].([]string)
-	err = Store.Session.Query(`SELECT * FROM local_identity WHERE identifier = ?`, identifier[0]).MapScan(local)
-	if err != nil {
-		log.WithError(err).Warnf("failed to retrieve local identity '%s' for user %s", identifier[0], userId.String())
-		erroneousUsers = append(erroneousUsers, userId.String())
-		return
+	if len(identifier) > 0 {
+		err = Store.Session.Query(`SELECT * FROM local_identity WHERE identifier = ?`, identifier[0]).MapScan(local)
+		if err != nil {
+			log.WithError(err).Warnf("failed to retrieve local identity '%s' for user %s", identifier[0], userId.String())
+			erroneousUsers = append(erroneousUsers, userId.String())
+			return
+		}
+		uid := new(UUID)
+		err = uid.UnmarshalBinary(uuid.NewV4().Bytes())
+		if err != nil {
+			log.WithError(err).Warnf("failed to create uuid for local identity for user %s", userId.String())
+			erroneousUsers = append(erroneousUsers, userId.String())
+			return
+		}
+		localUser := UserIdentity{
+			DisplayName: local["display_name"].(string),
+			Id:          *uid,
+			Identifier:  local["identifier"].(string),
+			Protocol:    "smtp",
+			Status:      "active",
+			Type:        "local",
+			UserId:      userId,
+		}
+		caliopenErr := Rest.CreateUserIdentity(&localUser)
+		if caliopenErr != nil {
+			log.WithError(caliopenErr).Warnf("failed to save local identity %v for user %s", localUser, userId.String())
+			erroneousUsers = append(erroneousUsers, userId.String())
+			return nil, caliopenErr.Cause()
+		}
+		return uid, nil
 	}
-	uid := new(UUID)
-	err = uid.UnmarshalBinary(uuid.NewV4().Bytes())
-	if err != nil {
-		log.WithError(err).Warnf("failed to create uuid for local identity for user %s", userId.String())
-		erroneousUsers = append(erroneousUsers, userId.String())
-		return
-	}
-	localUser := UserIdentity{
-		DisplayName: local["display_name"].(string),
-		Id:          *uid,
-		Identifier:  local["identifier"].(string),
-		Protocol:    "smtp",
-		Status:      "active",
-		Type:        "local",
-		UserId:      userId,
-	}
-	caliopenErr := Rest.CreateUserIdentity(&localUser)
-	if caliopenErr != nil {
-		log.WithError(caliopenErr).Warnf("failed to save local identity %v for user %s", localUser, userId.String())
-		erroneousUsers = append(erroneousUsers, userId.String())
-		return UUID{}, caliopenErr.Cause()
-	}
-	return *uid, nil
+	return nil, errors.New("local_identities empty")
 }
 
 func createRemotes(Store *store.CassandraBackend, erroneousUsers []string, userId UUID, Rest *REST.RESTfacility) (err error) {
