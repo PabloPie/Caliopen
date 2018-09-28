@@ -196,8 +196,6 @@ func ServeError(rw gin.ResponseWriter, r *http.Request, err error) {
 		}
 	}
 	rw.Flush()
-	conn, _, _ := rw.Hijack()
-	conn.Close()
 }
 
 func errorAsJSON(err swgErr.Error) []byte {

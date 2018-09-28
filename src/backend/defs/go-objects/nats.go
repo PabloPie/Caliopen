@@ -18,9 +18,22 @@ type IMAPorder struct {
 	Password string
 }
 
-// DeliveryAck holds reply from nats when using request/reply system
+type TwitterOrder struct {
+	Order    string
+	UserId   string
+	RemoteId string
+}
+
+// DeliveryAck holds reply from nats when using request/reply system for email
 type DeliveryAck struct {
 	EmailMessage *EmailMessage `json:"-"`
 	Err          bool          `json:"error"`
 	Response     string        `json:"message,omitempty"`
+}
+
+// a lighter struct to reply to a request
+type Ack struct {
+	Error    error  `json:"error"`
+	Ok       bool   `json:"ok"`
+	Response string `json:"message,omitempty"`
 }

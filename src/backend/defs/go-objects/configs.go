@@ -58,6 +58,11 @@ type (
 		VaultConfig VaultConfig `mapstructure:"vault_settings"`
 	}
 
+	// Elasticsearch
+	IndexConfig struct {
+		Urls []string `mapstructure:"urls"`
+	}
+
 	// Objects Store
 	OSSConfig struct {
 		Endpoint  string            `mapstructure:"endpoint"`
