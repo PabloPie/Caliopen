@@ -22,10 +22,6 @@ type (
 		StoreConfig      StoreConfig `mapstructure:"store_settings"`
 		LDAConfig        broker.LDAConfig
 	}
-
-	IndexConfig struct {
-		Urls []string `mapstructure:"urls"`
-	}
 )
 
 const failuresThreshold = 48 // how many hours to wait before disabling a faulty remote.

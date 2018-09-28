@@ -16,20 +16,21 @@ import (
 	"fmt"
 	twd "github.com/CaliOpen/Caliopen/src/backend/protocols/go.twitter"
 	log "github.com/Sirupsen/logrus"
+	"github.com/nats-io/go-nats"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
 var (
-	configPath    string
-	configFile    string
-	pidFile       string
-	signalChannel chan os.Signal
-	cmdConfig     CmdConfig
-	twitterWorkers   []*twd.Worker
+	configPath     string
+	configFile     string
+	pidFile        string
+	signalChannel  chan os.Signal
+
 
 	startCmd = &cobra.Command{
 		Use:   "start",
@@ -40,7 +41,7 @@ var (
 
 func init() {
 	startCmd.PersistentFlags().StringVarP(&configFile, "config", "c",
-		"twitterd", "Name of the configuration file, without extension. (YAML, TOML, JSON… allowed)")
+		"twitterworker", "Name of the configuration file, without extension. (YAML, TOML, JSON… allowed)")
 	startCmd.PersistentFlags().StringVarP(&configPath, "configpath", "",
 		"../../../../configs/", "Main config file path.")
 	startCmd.PersistentFlags().StringVarP(&pidFile, "pid-file", "p",
@@ -48,39 +49,11 @@ func init() {
 
 	RootCmd.AddCommand(startCmd)
 	signalChannel = make(chan os.Signal, 1)
-	cmdConfig = CmdConfig{}
-}
-
-func sigHandler(workers []*twd.Worker) {
-	// handle SIGHUP for reloading the configuration while running
-	signal.Notify(signalChannel, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
-
-	for sig := range signalChannel {
-
-		if sig == syscall.SIGHUP {
-			err := readConfig(&cmdConfig)
-			if err != nil {
-				log.WithError(err).Error("Error while ReadConfig (reload)")
-			} else {
-				log.Info("Configuration is reloaded")
-			}
-			// TODO: handle SIGHUP
-		} else if sig == syscall.SIGTERM || sig == syscall.SIGQUIT || sig == syscall.SIGINT {
-			log.Info("Shutdown signal caught")
-			for _, w := range workers {
-				w.Stop()
-			}
-			log.Info("Shutdown completed, exiting")
-			os.Exit(0)
-		} else {
-			os.Exit(0)
-		}
-	}
 }
 
 func start(cmd *cobra.Command, args []string) {
 
-	err := readConfig(&cmdConfig)
+	err := readConfig(twd.AppConfig)
 	if err != nil {
 		log.WithError(err).Fatal("Error while reading config")
 	}
@@ -98,24 +71,61 @@ func start(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// init and start worker(s)
-	var i uint32
-	twitterWorkers = make([]*twd.Worker, cmdConfig.Workers)
-	for i = 0; i < cmdConfig.Workers; i++ {
-		log.Infof("initializing Twitter worker %d", i)
-		twitterWorkers[i], err = twd.NewWorker(twd.WorkerConfig(cmdConfig), i)
-		if err != nil {
-			log.WithError(err).Fatal("Failed to init IMAP Worker")
-		}
-		go twitterWorkers[i].Start()
+	twd.WorkersGuard = new(sync.RWMutex)
+	twd.TwitterWorkers = []*twd.Worker{}
+	//TODO: listen to NATS messages
+	twd.NatsConn, err = nats.Connect(twd.AppConfig.BrokerConfig.NatsURL)
+	if err != nil {
+		log.WithError(err).Fatal("[TwitterWorker] initialization of NATS connexion failed")
 	}
-	sigHandler(twitterWorkers)
+	_, err = twd.NatsConn.QueueSubscribe(twd.AppConfig.BrokerConfig.NatsTopicFetcher, twd.AppConfig.BrokerConfig.NatsQueue, twd.NatsMsgHandler)
+	if err != nil {
+		log.WithError(err).Fatal("[TwitterWorker] initialization of NATS subscription failed")
+	}
+
+	/*
+	// retrieve twitter remote identities from db
+	accounts, err := twd.RetrieveTwitterAccounts()
+	if err != nil {
+		log.WithError(err).Fatal("failed to retrieve twitter credentials from db")
+	}
+
+	// init and start worker(s) for each identity
+	twitterWorkers = []*twd.Worker{}
+	var i int
+	for _, account := range accounts {
+		log.Infof("initializing Twitter worker %d", i)
+		worker, err := twd.NewWorker(i, twd.AppConfig, account, twd.DefaultPollInterval, "")
+		if err != nil {
+			log.WithError(err).Warnf("Failed to init twitter Worker %d", i)
+		} else {
+			twitterWorkers = append(twitterWorkers, worker)
+			go twitterWorkers[i].Start()
+			i++
+		}
+	}
+	workersGuard = new(sync.RWMutex)
+	go sigHandler(twitterWorkers)
+
+
+
+	/*
+	// start polling
+	ticker := time.NewTicker(twd.DefaultPollInterval * time.Second)
+	for range ticker.C {
+		workersGuard.RLock()
+		for _, worker := range twitterWorkers {
+			if worker.IsDue() {
+				worker.PollDesk <- twd.PollDM
+			}
+		}
+		workersGuard.RUnlock()
+	}
+*/
 }
 
-type CmdConfig twd.WorkerConfig
-
 // ReadConfig which should be called at startup, or when a SIG_HUP is caught
-func readConfig(config *CmdConfig) error {
+func readConfig(config *twd.WorkerConfig) error {
 	// load in the main config. Reading from YAML, TOML, JSON, HCL and Java properties config files
 	v := viper.New()
 	v.SetConfigName(configFile)                           // name of config file (without extension)
@@ -135,4 +145,29 @@ func readConfig(config *CmdConfig) error {
 	}
 
 	return nil
+}
+func sigHandler(workers []*twd.Worker) {
+	signal.Notify(signalChannel, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
+
+	for sig := range signalChannel {
+
+		if sig == syscall.SIGHUP {
+			err := readConfig(twd.AppConfig)
+			if err != nil {
+				log.WithError(err).Error("Error while ReadConfig (reload)")
+			} else {
+				log.Info("Configuration is reloaded")
+			}
+			// TODO: handle SIGHUP
+		} else if sig == syscall.SIGTERM || sig == syscall.SIGQUIT || sig == syscall.SIGINT {
+			log.Info("Shutdown signal caught")
+			for _, w := range workers {
+				w.PollDesk <- twd.Stop
+			}
+			log.Info("Shutdown completed, exiting")
+			os.Exit(0)
+		} else {
+			os.Exit(0)
+		}
+	}
 }

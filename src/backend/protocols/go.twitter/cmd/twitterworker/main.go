@@ -7,7 +7,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/CaliOpen/Caliopen/src/backend/protocols/go.twitter/cmd/caliopen_twitterd/cli_cmds"
+	"github.com/CaliOpen/Caliopen/src/backend/protocols/go.twitter/cmd/twitterworker/cli_cmds"
 	"os"
 )
 
