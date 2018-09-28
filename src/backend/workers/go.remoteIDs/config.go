@@ -16,5 +16,6 @@ type PollerConfig struct {
 	StoreName       string            `mapstructure:"store_name"`
 	StoreConfig     StoreConfig       `mapstructure:"store_settings"`
 	NatsUrl         string            `mapstructure:"nats_url"`
+	NatsQueue       string            `mapstructure:"nats_queue"`
 	NatsTopics      map[string]string `mapstructure:"nats_topics"`
 }

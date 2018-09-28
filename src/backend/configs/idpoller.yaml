@@ -1,7 +1,8 @@
 #polling config
-scan_interval: 15                               # in minutes. How often storage is scanned to retrieve and cache remote identities data
+scan_interval: 180                              # in minutes. How often storage is scanned to sync with remote identities data
 remote_protocols:                               # which kind of remote protocols poller must handle
   - imap
+  - twitter
 #storage facility
 store_name: cassandra                           # backend for remote identities data
 store_settings:
@@ -11,5 +12,8 @@ store_settings:
   consistency_level: 1
 #messaging system
 nats_url: nats://nats:4222
-nats_topics:                                    # NATS topics for each kind of remote identities
-  imap: IMAPfetcher
+nats_queue : IDpoller
+nats_topics:                                    # NATS topics to work with
+  id_cache: idCache                               # regarding updates of poller's cache
+  imap: IMAPfetcher                               # regarding IMAP operations
+  twitter: twitterFetcher                         # regarding twitter operations

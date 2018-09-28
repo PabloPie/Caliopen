@@ -13,12 +13,16 @@ import (
 )
 
 type cacheEntry struct {
-	iDkey        string
-	cronId       cron.EntryID
-	pollInterval string
-	remoteID     UserIdentity
+	cronId         cron.EntryID
+	iDkey          string
+	pollInterval   string // in minutes
+	remoteID       UUID
+	remoteProtocol string
+	userID         UUID
 }
 
+// updateCache fetches remote identities from db and adds them to poller cache
+// it returns entries that have been added/removed/updated
 func (p *Poller) updateCache() (added, removed, updated map[string]bool, err error) {
 	added = make(map[string]bool)
 	removed = make(map[string]bool)
@@ -58,9 +62,11 @@ func (p *Poller) updateCache() (added, removed, updated map[string]bool, err err
 					pollInterval = defaultInterval
 				}
 				p.Cache[idkey] = cacheEntry{
-					iDkey:        idkey,
-					pollInterval: pollInterval,
-					remoteID:     *remote,
+					iDkey:          idkey,
+					pollInterval:   pollInterval,
+					remoteID:       remote.Id,
+					remoteProtocol: remote.Protocol,
+					userID: remote.UserId,
 				}
 				added[idkey] = true
 			}

@@ -7,6 +7,7 @@
 package go_remoteIDs
 
 import (
+	"encoding/json"
 	"github.com/CaliOpen/Caliopen/src/backend/main/go.backends"
 	"github.com/CaliOpen/Caliopen/src/backend/main/go.backends/store/cassandra"
 	log "github.com/Sirupsen/logrus"
@@ -23,6 +24,7 @@ type Poller struct {
 	Config   PollerConfig
 	MainCron *cron.Cron
 	NatsConn *nats.Conn
+	NatsSub  *nats.Subscription
 	Store    backends.IdentityStorage
 }
 
@@ -69,14 +71,20 @@ func NewPoller(config PollerConfig) (poller *Poller, err error) {
 }
 
 func (p *Poller) Start() error {
+	var err error
+	p.NatsSub, err = p.NatsConn.QueueSubscribe(p.Config.NatsTopics["id_cache"], p.Config.NatsQueue, p.natsOrdersHandler)
+
+	//add sync command to cron
 	cronStr := "@every " + strconv.Itoa(int(p.Config.ScanInterval)) + "m"
-	_, err := p.MainCron.AddFunc(cronStr, p.poll)
+	_, err = p.MainCron.AddFunc(cronStr, p.sync)
 	if err != nil {
 		//TODO
 	}
-	// run poll() once before starting MainCron
-	p.poll()
+	// run sync() once before starting MainCron
+	p.sync()
+
 	p.MainCron.Start()
+
 	return nil
 }
 
@@ -87,9 +95,8 @@ func (p *Poller) Stop() {
 	p.Store.Close()
 }
 
-func (p *Poller) poll() {
-
-	log.Info("updating poll crons")
+func (p *Poller) sync() {
+	log.Info("syncing poller with db")
 	// 1. update cache with 'active' remote identities found in db
 	added, removed, updated, err := p.updateCache()
 	if err != nil {
@@ -115,4 +122,28 @@ func (p *Poller) poll() {
 
 	log.Infof("%d jobs added, %d jobs removed, %d jobs updated.\n           => %d jobs scheduled in cron table.",
 		len(added), len(removed), len(updated), len(p.MainCron.Entries()))
+}
+
+// natsOrdersHandler handles nats messages emitted for this poller
+func (p *Poller) natsOrdersHandler(msg *nats.Msg) {
+
+	//TODO : put this struct in go.objects
+	type Message struct {
+		Order        string
+		Identity     string
+		PollInterval string
+		Protocol     string
+	}
+	var order Message
+	err := json.Unmarshal(msg.Data, order)
+	if err != nil {
+		log.WithError(err).Warn("unable to unmarshal nats order")
+	}
+	switch order.Order {
+	case "update":
+	case "delete":
+	case "add":
+	default:
+
+	}
 }
