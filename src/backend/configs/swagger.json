@@ -2479,7 +2479,8 @@
                   "type": "string",
                   "enum": [
                     "imap",
-                    "smtp"
+                    "smtp",
+                    "twitter"
                   ]
                 },
                 "status": {
