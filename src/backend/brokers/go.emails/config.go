@@ -28,7 +28,5 @@ type (
 		StoreName        string         `mapstructure:"store_name"`
 	}
 
-	IndexConfig struct {
-		Urls []string `mapstructure:"urls"`
-	}
+
 )
