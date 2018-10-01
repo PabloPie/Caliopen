@@ -14,6 +14,6 @@ store_settings:
 nats_url: nats://nats:4222
 nats_queue : IDpoller
 nats_topics:                                    # NATS topics to work with
-  id_cache: idCache                               # regarding updates of poller's cache
-  imap: IMAPfetcher                               # regarding IMAP operations
-  twitter: twitterFetcher                         # regarding twitter operations
+  id_cache: idCache                               # receiving orders to update poller's cache
+  imap: IMAPfetcher                               # emitting orders for IMAP operations
+  twitter: twitterFetcher                         # emitting orders for twitter operations

@@ -95,6 +95,7 @@ func (p *Poller) Stop() {
 	p.Store.Close()
 }
 
+// sync updates poller's jobs after poller's cache has been updated
 func (p *Poller) sync() {
 	log.Info("syncing poller with db")
 	// 1. update cache with 'active' remote identities found in db
@@ -124,7 +125,7 @@ func (p *Poller) sync() {
 		len(added), len(removed), len(updated), len(p.MainCron.Entries()))
 }
 
-// natsOrdersHandler handles nats messages emitted for this poller
+// natsOrdersHandler handles nats messages emitted for poller
 func (p *Poller) natsOrdersHandler(msg *nats.Msg) {
 
 	//TODO : put this struct in go.objects
@@ -141,9 +142,12 @@ func (p *Poller) natsOrdersHandler(msg *nats.Msg) {
 	}
 	switch order.Order {
 	case "update":
+		//TODO
 	case "delete":
+		//TODO
 	case "add":
+		//TODO
 	default:
-
+		log.Warnf("no handler for order '%s' on topic '%s'", order.Order, msg.Subject)
 	}
 }
