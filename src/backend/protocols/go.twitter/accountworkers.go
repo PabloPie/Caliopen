@@ -5,7 +5,7 @@
 package twitterworker
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	broker "github.com/CaliOpen/Caliopen/src/backend/brokers/go.twitter"
 	. "github.com/CaliOpen/Caliopen/src/backend/defs/go-objects"
@@ -13,19 +13,13 @@ import (
 	"github.com/Sirupsen/logrus"
 	log "github.com/Sirupsen/logrus"
 	"github.com/dghubble/oauth1"
-	"github.com/nats-io/go-nats"
 	"sort"
-	"sync"
-	"time"
 )
 
 type Worker struct {
-	PollDesk      chan uint
+	WorkerDesk    chan uint
 	broker        *broker.TwitterBroker
-	id            int
 	lastDMseen    string
-	nextPoll      time.Time
-	pollInterval  time.Duration
 	twitterClient *twitter.Client
 	userAccount   *TwitterAccount
 }
@@ -35,85 +29,75 @@ type TwitterAccount struct {
 	accessTokenSecret string
 	userID            UUID
 	remoteID          UUID
+	screenName        string
 }
 
 const (
-	//pollDesk commands
+	//WorkerDesk commands
 	PollDM = uint(iota)
 	PollTimeLine
 	Stop
+
+	lastSeenInfosKey = "lastseendm"
+	lastSyncInfosKey = "lastsync"
 )
 
-var (
-	WorkersGuard   *sync.RWMutex
-	TwitterWorkers []*Worker
-	NatsConn       *nats.Conn
-)
-
-func NatsMsgHandler(msg *nats.Msg) {
-	message := TwitterOrder{}
-	err := json.Unmarshal(msg.Data, &message)
-	if err != nil {
-		log.WithError(err).Errorf("Unable to unmarshal message from NATS. Payload was <%s>", string(msg.Data))
-		return
-	}
-	switch message.Order {
-	case "sync":
-		//TODO
-	case "cache_update":
-		//TODO
-	}
-}
-
-func NewWorker(id int, config *WorkerConfig, account TwitterAccount, pollInterval int, lastDMseen string) (worker *Worker, err error) {
+// NewWorker create a worker dedicated to a specific twitter account.
+// A worker holds remote identity credentials and data, as well as user context connection to twitter API.
+func NewWorker(config *WorkerConfig, userID, remoteID string) (worker *Worker, err error) {
 	worker = new(Worker)
-	worker.PollDesk = make(chan uint, 3)
+	worker.WorkerDesk = make(chan uint, 3)
 	b, e := broker.Initialize(config.BrokerConfig)
 	if e != nil {
 		err = fmt.Errorf("[TwitterWorker]NewWorker failed to initialize a twitter broker : %s", e)
 		return nil, err
 	}
 	worker.broker = b
-	worker.id = id
-	worker.lastDMseen = lastDMseen
-	worker.pollInterval = time.Duration(pollInterval)
+	var remote *UserIdentity
+	// retrieve data from db
+	remote, err = worker.broker.Store.RetrieveUserIdentity(userID, remoteID, true)
+	if err != nil {
+		log.WithError(err).Infof("[PollDM] failed to retrieve remote identity <%s> (user <%s>)", worker.userAccount.remoteID, worker.userAccount.userID)
+		return
+	}
+	if remote.Credentials == nil {
+		log.WithError(err).Infof("[PollDM] failed to retrieve credentials for remote identity <%s> (user <%s>)", worker.userAccount.remoteID, worker.userAccount.userID)
+		return
+	}
+	worker.userAccount = &TwitterAccount{
+		accessToken:       (*remote.Credentials)["token"],
+		accessTokenSecret: (*remote.Credentials)["secret"],
+		userID:            remote.UserId,
+		remoteID:          remote.Id,
+		screenName:        remote.Identifier,
+	}
+	worker.lastDMseen = remote.Infos[lastSeenInfosKey]
 
-	authConf := oauth1.NewConfig("TSpJhxzkNo43Q0d64Vz10a29I", "kU4mWmFXZPXdzztePHA0uwU57m6CpfbGp2TNzpwgmDiGyjUyxL")
-	token := oauth1.NewToken("2353377708-mijYkXocnStNt9ZttKqLWi6UicCt251UQRi1ivs", "dGi5OgwjDJjlSIDpR9VTp2vSPFlEaXNCyOBHFhbh4y4aA")
+	authConf := oauth1.NewConfig(config.TwitterAppKey, config.TwitterAppSecret)
+	token := oauth1.NewToken(worker.userAccount.accessToken, worker.userAccount.accessTokenSecret)
 	httpClient := authConf.Client(oauth1.NoContext, token)
-	worker.twitterClient = twitter.NewClient(httpClient)
-
-	worker.userAccount = &account
+	if worker.twitterClient = twitter.NewClient(httpClient); worker.twitterClient == nil {
+		return nil, errors.New("[NewWorker] twitter api failed to create http client")
+	}
 
 	return
 }
 
 func (worker *Worker) Start() error {
-	worker.nextPoll = time.Now().Add(worker.pollInterval * time.Second) // TODO
 	go func(w *Worker) {
 	deskLoop:
-		for command := range worker.PollDesk {
+		for command := range worker.WorkerDesk {
 			switch command {
 			case PollDM:
 				worker.PollDM()
 			case Stop:
-				worker.Stop()
 				break deskLoop
 			default:
-				logrus.Warnf("worker %d received unknown command number %d", worker.id, command)
+				logrus.Warnf("worker received unknown command number %d", command)
 			}
 		}
 	}(worker)
 	return nil
-}
-
-func (worker *Worker) Stop() error {
-	//TODO
-	return nil
-}
-
-func (worker *Worker) IsDue() bool {
-	return time.Now().After(worker.nextPoll)
 }
 
 // PollDM calls Twitter API endpoint to fetch DM for worker
@@ -132,7 +116,7 @@ func (worker *Worker) PollDM() {
 		if worker.dmNotSeen(event) {
 			err := worker.broker.ProcessInDM(worker.userAccount.userID, worker.userAccount.remoteID, &event, true)
 			if err != nil {
-				logrus.WithError(err).Warnf("[TwitterWorker](worker %d) ProcessInDM failed for event : %+v", worker.id, event)
+				logrus.WithError(err).Warnf("[TwitterWorker] ProcessInDM failed for event : %+v", event)
 				if err.Error() != broker.NatsError {
 					// raw message has not been saved, don't go further
 					continue
@@ -141,7 +125,6 @@ func (worker *Worker) PollDM() {
 			worker.lastDMseen = event.ID
 		}
 	}
-	worker.nextPoll = worker.nextPoll.Add(worker.pollInterval * time.Second)
 }
 
 func (worker *Worker) dmNotSeen(event twitter.DirectMessageEvent) bool {

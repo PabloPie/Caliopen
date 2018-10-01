@@ -26,11 +26,10 @@ import (
 )
 
 var (
-	configPath     string
-	configFile     string
-	pidFile        string
-	signalChannel  chan os.Signal
-
+	configPath    string
+	configFile    string
+	pidFile       string
+	signalChannel chan os.Signal
 
 	startCmd = &cobra.Command{
 		Use:   "start",
@@ -72,8 +71,8 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	twd.WorkersGuard = new(sync.RWMutex)
-	twd.TwitterWorkers = []*twd.Worker{}
-	//TODO: listen to NATS messages
+	twd.TwitterWorkers = map[string]*twd.Worker{}
+
 	twd.NatsConn, err = nats.Connect(twd.AppConfig.BrokerConfig.NatsURL)
 	if err != nil {
 		log.WithError(err).Fatal("[TwitterWorker] initialization of NATS connexion failed")
@@ -83,45 +82,10 @@ func start(cmd *cobra.Command, args []string) {
 		log.WithError(err).Fatal("[TwitterWorker] initialization of NATS subscription failed")
 	}
 
-	/*
-	// retrieve twitter remote identities from db
-	accounts, err := twd.RetrieveTwitterAccounts()
-	if err != nil {
-		log.WithError(err).Fatal("failed to retrieve twitter credentials from db")
-	}
+	log.Info("Twitter worker started")
+	// listening mode, waiting for nats orders to add/update workers or os sig to shutdown
+	sigHandler()
 
-	// init and start worker(s) for each identity
-	twitterWorkers = []*twd.Worker{}
-	var i int
-	for _, account := range accounts {
-		log.Infof("initializing Twitter worker %d", i)
-		worker, err := twd.NewWorker(i, twd.AppConfig, account, twd.DefaultPollInterval, "")
-		if err != nil {
-			log.WithError(err).Warnf("Failed to init twitter Worker %d", i)
-		} else {
-			twitterWorkers = append(twitterWorkers, worker)
-			go twitterWorkers[i].Start()
-			i++
-		}
-	}
-	workersGuard = new(sync.RWMutex)
-	go sigHandler(twitterWorkers)
-
-
-
-	/*
-	// start polling
-	ticker := time.NewTicker(twd.DefaultPollInterval * time.Second)
-	for range ticker.C {
-		workersGuard.RLock()
-		for _, worker := range twitterWorkers {
-			if worker.IsDue() {
-				worker.PollDesk <- twd.PollDM
-			}
-		}
-		workersGuard.RUnlock()
-	}
-*/
 }
 
 // ReadConfig which should be called at startup, or when a SIG_HUP is caught
@@ -146,7 +110,7 @@ func readConfig(config *twd.WorkerConfig) error {
 
 	return nil
 }
-func sigHandler(workers []*twd.Worker) {
+func sigHandler() {
 	signal.Notify(signalChannel, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
 
 	for sig := range signalChannel {
@@ -161,8 +125,8 @@ func sigHandler(workers []*twd.Worker) {
 			// TODO: handle SIGHUP
 		} else if sig == syscall.SIGTERM || sig == syscall.SIGQUIT || sig == syscall.SIGINT {
 			log.Info("Shutdown signal caught")
-			for _, w := range workers {
-				w.PollDesk <- twd.Stop
+			for _, w := range twd.TwitterWorkers {
+				w.WorkerDesk <- twd.Stop
 			}
 			log.Info("Shutdown completed, exiting")
 			os.Exit(0)
