@@ -148,6 +148,32 @@ func (cb *CassandraBackend) UpdateUserIdentity(userIdentity *UserIdentity, field
 	return err
 }
 
+// UpdateRemoteInfos is a convenient way to quickly update infos map without the need of an already created UserIdentity object
+func (cb *CassandraBackend) UpdateRemoteInfosMap(userId, remoteId string, infos map[string]string) error {
+	userIdentityTable := cb.IKeyspace.Table("user_identity", &UserIdentity{}, gocassa.Keys{
+		PartitionKeys: []string{"user_id", "identity_id"},
+	}).WithOptions(gocassa.Options{TableName: "user_identity"})
+
+	return userIdentityTable.Where(gocassa.Eq("user_id", userId), gocassa.Eq("identity_id", remoteId)).
+		Update(map[string]interface{}{
+			"infos": infos,
+		}).Run()
+}
+
+// RetrieveRemoteInfos is a convenient way to quickly retrieve infos map without the need of an already created UserIdentity object
+func (cb *CassandraBackend) RetrieveRemoteInfosMap(userId, remoteId string) (infos map[string]string, err error) {
+	m := map[string]interface{}{}
+	q := cb.Session.Query(`SELECT infos FROM user_identity WHERE user_id = ? AND identity_id = ?`, userId, remoteId)
+	err = q.MapScan(m)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range m {
+		infos[k] = v.(string)
+	}
+	return
+}
+
 func (cb *CassandraBackend) RetrieveRemoteIdentities(userId string, withCredentials bool) (userIdentities []*UserIdentity, err error) {
 	var count int
 	iter := cb.Session.Query(`SELECT identity_id FROM identity_type_lookup WHERE type = ? AND user_id = ?`, RemoteIdentity, userId).Iter()

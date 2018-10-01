@@ -16,9 +16,11 @@ import (
 )
 
 const (
-	natsMessageTmpl = "{\"order\":\"%s\",\"user_id\":\"%s\",\"remote_id\":\"%s\",\"message_id\": \"%s\"}"
-	natsOrder       = "process_raw"
-	NatsError       = "nats error"
+	natsMessageTmpl  = "{\"order\":\"%s\",\"user_id\":\"%s\",\"remote_id\":\"%s\",\"message_id\": \"%s\"}"
+	natsOrder        = "process_raw"
+	NatsError        = "nats error"
+	lastSeenInfosKey = "lastseendm"
+	lastSyncInfosKey = "lastsync"
 )
 
 func (broker *TwitterBroker) ProcessInDM(userID, remoteID UUID, dm *twitter.DirectMessageEvent, rawOnly bool) error {
@@ -39,5 +41,15 @@ func (broker *TwitterBroker) ProcessInDM(userID, remoteID UUID, dm *twitter.Dire
 		}
 		return errors.New(NatsError)
 	}
+
+	// update sync status in db
+	// TODO: algorithm to shorten pollinterval after new DM has been received
+	infos, err := broker.Store.RetrieveRemoteInfosMap(userID.String(), remoteID.String())
+	if err != nil {
+		return err
+	}
+	infos[lastSeenInfosKey] = dm.ID
+	infos[lastSyncInfosKey] = time.Now().Format(time.RFC3339)
+	err = broker.Store.UpdateRemoteInfosMap(userID.String(), remoteID.String(), infos)
 	return nil
 }

@@ -4,7 +4,7 @@ BrokerConfig:
   #messaging system
   nats_url: nats://nats:4222
   nats_queue: Twitterworkers                                # NATS group queue for workers
-  nats_topic_fetcher: TwitterFetcher                        # NATS topic to listen to actions to execute
+  nats_topic_fetcher: twitterFetcher                        # NATS topic to listen to actions to execute
   nats_topic_sender: outboundTwitter                        # NATS topic to listen to actions to execute
   #storage facility
   store_name: cassandra                                  # backend to store raw emails and messages (inbound & outbound)

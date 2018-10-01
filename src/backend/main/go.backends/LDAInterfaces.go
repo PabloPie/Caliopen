@@ -31,6 +31,8 @@ type LDAStore interface {
 
 	RetrieveUserIdentity(userId, identityId string, withCredentials bool) (*UserIdentity, error)
 	UpdateUserIdentity(userIdentity *UserIdentity, fields map[string]interface{}) error
+	UpdateRemoteInfosMap(userId, remoteId string, infos map[string]string) error
+	RetrieveRemoteInfosMap(userId, remoteId string) (infos map[string]string, err error)
 }
 
 type LDAIndex interface {
