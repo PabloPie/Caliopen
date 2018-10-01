@@ -125,7 +125,7 @@ func (p *Poller) sync() {
 		len(added), len(removed), len(updated), len(p.MainCron.Entries()))
 }
 
-// natsOrdersHandler handles nats messages emitted for poller
+// natsOrdersHandler handles nats messages emitted for poller from external components
 func (p *Poller) natsOrdersHandler(msg *nats.Msg) {
 
 	//TODO : put this struct in go.objects

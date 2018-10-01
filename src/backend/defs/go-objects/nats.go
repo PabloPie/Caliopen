@@ -19,9 +19,9 @@ type IMAPorder struct {
 }
 
 type TwitterOrder struct {
-	Order    string
-	UserId   string
-	RemoteId string
+	Order    string `json:"order"`
+	UserId   string `json:"user_id"`
+	RemoteId string `json:"remote_id"`
 }
 
 // DeliveryAck holds reply from nats when using request/reply system for email

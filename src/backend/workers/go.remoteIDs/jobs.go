@@ -42,6 +42,7 @@ func (p *Poller) AddJobFor(idkey string) (err error) {
 				return
 			}
 			p.Cache[idkey] = entry
+			p.addWorkerFor(idkey)
 		default:
 			log.WithError(err).Warnf("[AddJobFor] unknow Remote Identity protocol <%s>", entry.remoteProtocol)
 			return
@@ -59,6 +60,10 @@ func (p *Poller) RemoveJobFor(idkey string) (err error) {
 	defer p.cacheMux.Unlock()
 	if entry, ok := p.Cache[idkey]; ok {
 		p.MainCron.Remove(entry.cronId)
+		switch entry.remoteProtocol {
+		case "twitter":
+			p.removeWorkerFor(idkey)
+		}
 		return
 	} else {
 		log.WithError(err).Warnf("[RemoveJobFor] failed to retrieve cache key <%s>", idkey)
@@ -73,5 +78,10 @@ func (p *Poller) UpdateJobFor(idkey string) (err error) {
 	if err != nil {
 		return
 	}
-	return p.AddJobFor(idkey)
+	err = p.AddJobFor(idkey)
+	if err != nil {
+		return
+	}
+	p.updateWorkerFor(idkey)
+	return
 }
