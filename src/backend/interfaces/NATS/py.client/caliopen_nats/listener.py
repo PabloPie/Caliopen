@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 @tornado.gen.coroutine
-def inbound_handler(config):
+def inbound_smtp_handler(config):
     """Inbound message NATS handler."""
     client = Nats()
     server = 'nats://{}:{}'.format(config['host'], config['port'])
@@ -34,6 +34,22 @@ def inbound_handler(config):
     log.info("nats subscription started for inboundSMTP")
     future.result()
 
+@tornado.gen.coroutine
+def inbound_twitter_handler(config):
+    """Inbound twitterDM NATS handler"""
+    client = Nats()
+    server = 'nats://{}:{}'.format(config['host'], config['port'])
+    servers = [server]
+
+    opts = {"servers": servers}
+    yield client.connect(**opts)
+
+    # create and register subscriber(s)
+    inbound_twitter_sub = subscribers.InboundTwitter(client)
+    future = client.subscribe("inboundTwitter", "Twitterqueue",
+                              inbound_twitter_sub.handler)
+    log.info("nats subscription started for inboundTwitter")
+    future.result()
 
 @tornado.gen.coroutine
 def contact_update_handler(config):
@@ -84,7 +100,8 @@ if __name__ == '__main__':
     import subscribers
 
     connect_storage()
-    inbound_handler(Configuration('global').get('message_queue'))
+    inbound_smtp_handler(Configuration('global').get('message_queue'))
+    inbound_twitter_handler(Configuration('global').get('message_queue'))
     contact_update_handler(Configuration('global').get('message_queue'))
     discovey_key_handler(Configuration('global').get('message_queue'))
     loop_instance = tornado.ioloop.IOLoop.instance()
