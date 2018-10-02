@@ -7,6 +7,7 @@
 package twitter_broker
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	. "github.com/CaliOpen/Caliopen/src/backend/defs/go-objects"
@@ -40,16 +41,29 @@ func (broker *TwitterBroker) ProcessInDM(userID, remoteID UUID, dm *twitter.Dire
 			log.Infof("natsMessage: %s\nnatsResponse: %+v\n", natsMessage, resp)
 		}
 		return errors.New(NatsError)
+	} else {
+		nats_ack := new(map[string]interface{})
+		err := json.Unmarshal(resp.Data, &nats_ack)
+		if err != nil {
+			log.WithError(err).Infof("natsMessage: %s\nnatsResponse: %+v\n", natsMessage, resp)
+			return errors.New("[ProcessInDM] failed to parse inbound ack on NATS")
+		}
+		if err, ok := (*nats_ack)["error"]; ok {
+			log.WithError(errors.New(err.(string))).Infof("natsMessage: %s\nnatsResponse: %+v\n", natsMessage, resp)
+			return errors.New("[ProcessInDM inbound delivery failed")
+		}
+
+		//nats delivery OK, update sync status in db
+		// TODO: algorithm to shorten pollinterval after new DM has been received
+		infos, err := broker.Store.RetrieveRemoteInfosMap(userID.String(), remoteID.String())
+		if err != nil {
+			return err
+		}
+		infos[lastSeenInfosKey] = dm.ID
+		infos[lastSyncInfosKey] = time.Now().Format(time.RFC3339)
+		err = broker.Store.UpdateRemoteInfosMap(userID.String(), remoteID.String(), infos)
+		return nil
+
 	}
 
-	// update sync status in db
-	// TODO: algorithm to shorten pollinterval after new DM has been received
-	infos, err := broker.Store.RetrieveRemoteInfosMap(userID.String(), remoteID.String())
-	if err != nil {
-		return err
-	}
-	infos[lastSeenInfosKey] = dm.ID
-	infos[lastSyncInfosKey] = time.Now().Format(time.RFC3339)
-	err = broker.Store.UpdateRemoteInfosMap(userID.String(), remoteID.String(), infos)
-	return nil
 }

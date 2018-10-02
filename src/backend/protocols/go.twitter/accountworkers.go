@@ -110,7 +110,7 @@ func (worker *Worker) PollDM() {
 	}
 
 	sort.Sort(ByAscID(DMs.Events)) // reverse events order to get older DMs first
-	if worker.dmNotSeen(DMs.Events[0]) {
+	if len(DMs.Events) > 0 && worker.dmNotSeen(DMs.Events[0]) {
 		//TODO: handle pagination with `cursor` param
 	}
 
