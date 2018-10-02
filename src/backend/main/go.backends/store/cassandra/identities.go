@@ -163,13 +163,14 @@ func (cb *CassandraBackend) UpdateRemoteInfosMap(userId, remoteId string, infos 
 // RetrieveRemoteInfos is a convenient way to quickly retrieve infos map without the need of an already created UserIdentity object
 func (cb *CassandraBackend) RetrieveRemoteInfosMap(userId, remoteId string) (infos map[string]string, err error) {
 	m := map[string]interface{}{}
+	infos = map[string]string{}
 	q := cb.Session.Query(`SELECT infos FROM user_identity WHERE user_id = ? AND identity_id = ?`, userId, remoteId)
 	err = q.MapScan(m)
 	if err != nil {
 		return nil, err
 	}
-	for k, v := range m {
-		infos[k] = v.(string)
+	for k, v := range m["infos"].(map[string]string) {
+		infos[k] = v
 	}
 	return
 }

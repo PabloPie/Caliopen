@@ -35,9 +35,10 @@ func NatsMsgHandler(msg *nats.Msg) {
 			worker, err := NewWorker(AppConfig, message.UserId, message.RemoteId)
 			if err != nil {
 				log.WithError(err).Warnf("[NatsMsgHandler] failed to create new worker for remote %s (user %s)", message.RemoteId, message.UserId)
+			} else {
+				registerWorker(worker)
+				worker.Start()
 			}
-			registerWorker(worker)
-			worker.Start()
 			select {
 			case worker.WorkerDesk <- PollDM:
 				log.Infof("[NatsMsgHandler] ordering to pollDM for remote %s (user %s)", message.RemoteId, message.UserId)
@@ -53,9 +54,10 @@ func NatsMsgHandler(msg *nats.Msg) {
 		worker, err := NewWorker(AppConfig, message.UserId, message.RemoteId)
 		if err != nil {
 			log.WithError(err).Warnf("[NatsMsgHandler] failed to create new worker for remote %s (user %s)", message.RemoteId, message.UserId)
+		} else {
+			registerWorker(worker)
+			worker.Start()
 		}
-		registerWorker(worker)
-		worker.Start()
 	case "remove_worker":
 		//TODO
 		log.Infof("received remove_worker order for remote twitter ID %s", message.RemoteId)

@@ -71,7 +71,9 @@ func NewWorker(config *WorkerConfig, userID, remoteID string) (worker *Worker, e
 		remoteID:          remote.Id,
 		screenName:        remote.Identifier,
 	}
-	worker.lastDMseen = remote.Infos[lastSeenInfosKey]
+	if lastseen, ok := remote.Infos[lastSeenInfosKey]; ok {
+		worker.lastDMseen = lastseen
+	}
 
 	authConf := oauth1.NewConfig(config.TwitterAppKey, config.TwitterAppSecret)
 	token := oauth1.NewToken(worker.userAccount.accessToken, worker.userAccount.accessTokenSecret)

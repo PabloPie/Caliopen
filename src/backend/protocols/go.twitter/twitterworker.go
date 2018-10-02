@@ -18,8 +18,7 @@ var (
 func registerWorker(worker *Worker) {
 	workerKey := worker.userAccount.userID.String() + worker.userAccount.remoteID.String()
 	WorkersGuard.Lock()
-	if _, ok := TwitterWorkers[workerKey]; !ok { // do not register same worker twice
-		TwitterWorkers[workerKey] = worker
-	}
+	delete(TwitterWorkers, workerKey) // do not register same worker twice
+	TwitterWorkers[workerKey] = worker
 	WorkersGuard.Unlock()
 }
