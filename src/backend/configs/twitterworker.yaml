@@ -5,7 +5,7 @@ BrokerConfig:
   nats_url: nats://nats:4222
   nats_queue: Twitterworkers                                # NATS group queue for workers
   nats_topic_fetcher: twitterFetcher                        # NATS topic to listen to actions to execute
-  nats_topic_sender: outboundTwitter                        # NATS topic to listen to actions to execute
+  nats_topic_sender: twitterSender                          # NATS topic to listen to actions to execute
   #storage facility
   store_name: cassandra                                  # backend to store raw emails and messages (inbound & outbound)
   store_settings:
@@ -28,11 +28,17 @@ BrokerConfig:
       url: http://vault:8200
       username: twitterworker                                 # password authentication for now ; later we'll make use of more secure auth methods (TLScert, kubernetes…)
       password: a_weak_password_for_twitter
-  #index facility
-  index_name: elasticsearch                              # backend to index messages (inbound & outbound)
-  index_settings:
-    urls: # many allowed
-    - http://elasticsearch:9200
-  # notifications
-  NotifierConfig:
-    admin_username: admin                                # username on whose behalf notifiers will act. This admin user must have been created before by other means.
+  LDAConfig:
+    broker_type: twitter                                   # types are : smtp, imap, mailboxe, etc.
+    #index facility
+    index_name: elasticsearch                              # backend to index messages (inbound & outbound)
+    index_settings:
+      urls: # many allowed
+      - http://elasticsearch:9200
+    #messaging system
+    in_topic: inboundTwitter
+    out_topic: outboundTwitter
+    nats_queue: Twitterqueue
+    # notifications
+    NotifierConfig:
+      admin_username: admin                                # username on whose behalf notifiers will act. This admin user must have been created before by other means.

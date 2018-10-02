@@ -30,7 +30,7 @@ func (broker *TwitterBroker) ProcessInDM(userID, remoteID UUID, dm *twitter.Dire
 	}
 	// send process order to nats
 	natsMessage := fmt.Sprintf(natsMessageTmpl, natsOrder, userID.String(), remoteID.String(), rawID.String())
-	resp, err := broker.NatsConn.Request(broker.Config.NatsTopicFetcher, []byte(natsMessage), 10*time.Second)
+	resp, err := broker.NatsConn.Request(broker.Config.LDAConfig.InTopic, []byte(natsMessage), 10*time.Second)
 	if err != nil {
 		if broker.NatsConn.LastError() != nil {
 			log.WithError(broker.NatsConn.LastError()).Warnf("[TwitterBroker] failed to publish inbound request on NATS for user %s. Raw message has been saved with id %s", userID.String(), rawID.String())

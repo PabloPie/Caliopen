@@ -21,7 +21,7 @@ import (
 )
 
 type submitter struct {
-	config          broker.LDAConfig
+	config          LDAConfig
 	workersCountMux sync.Mutex
 	runningWorkers  int
 	submitChan      chan *broker.SmtpEmail

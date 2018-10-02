@@ -5,13 +5,13 @@
 package caliopen_smtp
 
 import (
-	broker "github.com/CaliOpen/Caliopen/src/backend/brokers/go.emails"
+	. "github.com/CaliOpen/Caliopen/src/backend/defs/go-objects"
 )
 
 type (
 	SMTPConfig struct {
 		AppConfig AppConfig
-		LDAConfig broker.LDAConfig
+		LDAConfig LDAConfig
 	}
 
 	AppConfig struct {

@@ -28,15 +28,15 @@ type (
 	}
 
 	BrokerConfig struct {
-		IndexConfig      IndexConfig    `mapstructure:"index_settings"`
-		IndexName        string         `mapstructure:"index_name"`
-		NatsQueue        string         `mapstructure:"nats_queue"`
-		NatsURL          string         `mapstructure:"nats_url"`
-		NatsTopicFetcher string         `mapstructure:"nats_topic_fetcher"`
-		NatsTopicSender  string         `mapstructure:"nats_topic_sender"`
-		NotifierConfig   NotifierConfig `mapstructure:"NotifierConfig"`
-		StoreConfig      StoreConfig    `mapstructure:"store_settings"`
-		StoreName        string         `mapstructure:"store_name"`
+		IndexConfig      IndexConfig `mapstructure:"index_settings"`
+		IndexName        string      `mapstructure:"index_name"`
+		NatsQueue        string      `mapstructure:"nats_queue"`
+		NatsURL          string      `mapstructure:"nats_url"`
+		NatsTopicFetcher string      `mapstructure:"nats_topic_fetcher"`
+		NatsTopicSender  string      `mapstructure:"nats_topic_sender"`
+		StoreConfig      StoreConfig `mapstructure:"store_settings"`
+		StoreName        string      `mapstructure:"store_name"`
+		LDAConfig        LDAConfig   `mapstructure:"LDAConfig"`
 	}
 )
 
@@ -87,9 +87,9 @@ func Initialize(conf BrokerConfig) (broker *TwitterBroker, err error) {
 		return
 	}
 	caliopenConfig := CaliopenConfig{
-		NotifierConfig: conf.NotifierConfig,
+		NotifierConfig: conf.LDAConfig.NotifierConfig,
 		NatsConfig: NatsConfig{
-			Url:            conf.NatsURL,
+			Url: conf.NatsURL,
 		},
 		RESTstoreConfig: RESTstoreConfig{
 			BackendName:  conf.StoreName,
@@ -101,8 +101,8 @@ func Initialize(conf BrokerConfig) (broker *TwitterBroker, err error) {
 			SizeLimit:    conf.StoreConfig.SizeLimit,
 		},
 		RESTindexConfig: RESTIndexConfig{
-			Hosts:     conf.IndexConfig.Urls,
-			IndexName: conf.IndexName,
+			Hosts:     conf.LDAConfig.IndexConfig.Urls,
+			IndexName: conf.LDAConfig.IndexName,
 		},
 	}
 	broker.Notifier = Notifications.NewNotificationsFacility(caliopenConfig, broker.NatsConn)
