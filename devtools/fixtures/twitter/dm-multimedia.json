@@ -4,12 +4,47 @@
   "type": "message_create",
   "message_create": {
     "sender_id": "484004076",
+    "sender_screen_name": "sapienSSapide",
     "target": {
       "recipient_id": "2353377708"
     },
     "message_data": {
       "text": "DM 10:11 avec #hashtag citation : @mailden_fr, Ã©moti ð et image https://t.co/xD4h9OYaAH",
-      "entitites": null,
+      "entities": {
+        "hashtags": [
+          {
+            "indices": [
+              14,
+              22
+            ],
+            "text": "hashtag"
+          }
+        ],
+        "media": null,
+        "urls": [
+          {
+            "indices": [
+              64,
+              87
+            ],
+            "display_url": "pic.twitter.com/xD4h9OYaAH",
+            "expanded_url": "https://twitter.com/messages/media/1047399250294923268",
+            "url": "https://t.co/xD4h9OYaAH"
+          }
+        ],
+        "user_mentions": [
+          {
+            "indices": [
+              34,
+              45
+            ],
+            "id": 2541676340,
+            "id_str": "2541676340",
+            "name": "Mailden",
+            "screen_name": "mailden_fr"
+          }
+        ]
+      },
       "attachment": {
         "type": "media",
         "media": {

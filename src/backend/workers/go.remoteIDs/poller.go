@@ -130,14 +130,16 @@ func (p *Poller) sync() {
 func (p *Poller) natsOrdersHandler(msg *nats.Msg) {
 
 	var order objects.RemoteIDNatsMessage
-	err := json.Unmarshal(msg.Data, order)
+	err := json.Unmarshal(msg.Data, &order)
 	if err != nil {
 		log.WithError(err).Warn("unable to unmarshal nats order")
 	}
 	switch order.Order {
 	case "update_interval":
 		idKey := order.UserId + order.IdentityId
-		(p.Cache[idKey]).pollInterval = order.PollInterval
+		cacheEntry := p.Cache[idKey]
+		cacheEntry.pollInterval = order.PollInterval
+		p.Cache[idKey] = cacheEntry
 		p.UpdateJobFor(idKey)
 	case "delete":
 		//TODO

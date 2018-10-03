@@ -5,6 +5,7 @@
 package twitterworker
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	broker "github.com/CaliOpen/Caliopen/src/backend/brokers/go.twitter"
@@ -14,14 +15,16 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/dghubble/oauth1"
 	"sort"
+	"strconv"
 )
 
 type Worker struct {
-	WorkerDesk    chan uint
-	broker        *broker.TwitterBroker
-	lastDMseen    string
-	twitterClient *twitter.Client
-	userAccount   *TwitterAccount
+	WorkerDesk       chan uint
+	broker           *broker.TwitterBroker
+	lastDMseen       string
+	twitterClient    *twitter.Client
+	userAccount      *TwitterAccount
+	usersScreenNames map[int64]string // a cache facility to avoid calling too often twitter API for screen_name lookup
 }
 
 type TwitterAccount struct {
@@ -82,6 +85,8 @@ func NewWorker(config *WorkerConfig, userID, remoteID string) (worker *Worker, e
 		return nil, errors.New("[NewWorker] twitter api failed to create http client")
 	}
 
+	worker.usersScreenNames = map[int64]string{}
+
 	return
 }
 
@@ -106,7 +111,37 @@ func (worker *Worker) Start() error {
 func (worker *Worker) PollDM() {
 	DMs, _, err := worker.twitterClient.DirectMessages.EventsList(&twitter.DirectMessageEventsListParams{Count: 10})
 	if err != nil {
-		logrus.Warn(err)
+		if e, ok := err.(twitter.APIError); ok {
+			for _, err := range e.Errors {
+				if err.Code == 88 {
+					log.Infof("twitter returned rate limit error, slowing down worker for account @%s", worker.userAccount.screenName)
+					accountInfos, err := worker.broker.Store.RetrieveRemoteInfosMap(worker.userAccount.userID.String(), worker.userAccount.remoteID.String())
+					if err == nil {
+						if pollInterval, ok := accountInfos["pollinterval"]; ok {
+							interval, e := strconv.Atoi(pollInterval)
+							if e == nil {
+								newInterval := strconv.Itoa(interval * 2)
+								accountInfos["pollinterval"] = newInterval
+								worker.broker.Store.UpdateRemoteInfosMap(worker.userAccount.userID.String(), worker.userAccount.remoteID.String(), accountInfos)
+								order := RemoteIDNatsMessage{
+									IdentityId:   worker.userAccount.remoteID.String(),
+									Order:        "update_interval",
+									PollInterval: newInterval,
+									Protocol:     "twitter",
+									UserId:       worker.userAccount.userID.String(),
+								}
+								jorder, jerr := json.Marshal(order)
+								if jerr == nil {
+									worker.broker.NatsConn.Publish("idCache", jorder)
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			logrus.WithError(err).Warnf("[TwitterWorker] PollDM failed for account @%s (remote %s, user %s)", worker.userAccount.screenName, worker.userAccount.remoteID.String(), worker.userAccount.userID.String())
+		}
 	}
 
 	sort.Sort(ByAscID(DMs.Events)) // reverse events order to get older DMs first
@@ -116,17 +151,29 @@ func (worker *Worker) PollDM() {
 
 	for _, event := range DMs.Events {
 		if worker.dmNotSeen(event) {
-			err := worker.broker.ProcessInDM(worker.userAccount.userID, worker.userAccount.remoteID, &event, true)
-			if err != nil {
-				logrus.WithError(err).Warnf("[TwitterWorker] ProcessInDM failed for event : %+v", event)
-				if err.Error() != broker.NatsError {
-					// raw message has not been saved, don't go further
-					continue
+			//lookup sender's screen_name because it's not embedded in event object
+			var senderName string
+			var inCache bool
+			senderID, err := strconv.ParseInt(event.Message.SenderID, 10, 64)
+			if err == nil {
+				if senderName, inCache = worker.usersScreenNames[senderID]; !inCache {
+					users, _, err := worker.twitterClient.Users.Lookup(&twitter.UserLookupParams{UserID: []int64{senderID}})
+					if err == nil && len(users) > 0 {
+						senderName = users[0].ScreenName
+						worker.usersScreenNames[senderID] = senderName
+					}
 				}
+			}
+			err = worker.broker.ProcessInDM(worker.userAccount.userID, worker.userAccount.remoteID, &event, senderName, true)
+			if err != nil {
+				// something went wrong, forget this DM id
+				logrus.WithError(err).Warnf("[TwitterWorker] ProcessInDM failed for event : %+v", event)
+				continue
 			}
 			worker.lastDMseen = event.ID
 		}
 	}
+	//TODO: write lastsync & last_check to remote identity in db at last
 }
 
 func (worker *Worker) dmNotSeen(event twitter.DirectMessageEvent) bool {
