@@ -5,8 +5,10 @@ from __future__ import absolute_import, print_function, unicode_literals
 from .mail import UserMessageQualifier
 from .contact import ContactEmailQualifier, ContactMessageQualifier
 from .device import NewDeviceQualifier
+from .twitter import UserDMQualifier
 
 __all__ = ['UserMessageQualifier',
            'ContactEmailQualifier',
            'ContactMessageQualifier',
-           'NewDeviceQualifier']
+           'NewDeviceQualifier',
+           'UserDMQualifier']
