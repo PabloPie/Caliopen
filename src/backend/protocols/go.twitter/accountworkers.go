@@ -164,7 +164,10 @@ func (worker *Worker) PollDM() {
 					}
 				}
 			}
-			err = worker.broker.ProcessInDM(worker.userAccount.userID, worker.userAccount.remoteID, &event, senderName, true)
+			event.Message.SenderScreenName = senderName
+			event.Message.Target.RecipientScreenName = worker.userAccount.screenName
+			//TODO: handle DM sent by user : remove or not ?
+			err = worker.broker.ProcessInDM(worker.userAccount.userID, worker.userAccount.remoteID, &event, true)
 			if err != nil {
 				// something went wrong, forget this DM id
 				logrus.WithError(err).Warnf("[TwitterWorker] ProcessInDM failed for event : %+v", event)

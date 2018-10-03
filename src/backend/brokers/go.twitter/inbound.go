@@ -24,10 +24,7 @@ const (
 	lastSyncInfosKey = "lastsync"
 )
 
-func (broker *TwitterBroker) ProcessInDM(userID, remoteID UUID, dm *twitter.DirectMessageEvent, senderName string, rawOnly bool) error {
-
-	// add sender's screen name before saving it as raw_message
-	dm.Message.SenderScreenName = senderName
+func (broker *TwitterBroker) ProcessInDM(userID, remoteID UUID, dm *twitter.DirectMessageEvent, rawOnly bool) error {
 
 	rawID, err := broker.SaveRawDM(dm, userID)
 	if err != nil {
