@@ -15,7 +15,7 @@ from caliopen_main.pi.parameters import PIParameter
 import caliopen_storage.helpers.json as helpers
 
 RECIPIENT_TYPES = ['To', 'From', 'Cc', 'Bcc', 'Reply-To', 'Sender']
-MESSAGE_TYPES = ['email']
+MESSAGE_TYPES = ['email', 'DM twitter']
 MESSAGE_STATES = ['draft', 'sending', 'sent', 'cancel',
                   'unread', 'read', 'deleted']
 
