@@ -9,7 +9,7 @@ import pytz
 from caliopen_storage.exception import NotFound
 from caliopen_main.message.core import RawMessage
 from caliopen_main.message.objects.message import Message
-from caliopen_pi.qualifiers import UserMessageQualifier
+from caliopen_pi.qualifiers import UserMessageQualifier, UserDMQualifier
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +30,36 @@ class UserMessageDelivery(object):
         log.debug('Retrieved raw message {}'.format(raw_msg_id))
 
         qualifier = UserMessageQualifier(self.user)
+        message = qualifier.process_inbound(raw)
+
+        # store and index message
+        obj = Message(self.user)
+        obj.unmarshall_dict(message.to_native())
+        obj.user_id = uuid.UUID(self.user.user_id)
+        obj.message_id = uuid.uuid4()
+        obj.date_insert = datetime.datetime.now(tz=pytz.utc)
+        obj.date_sort = obj.date_insert
+        obj.marshall_db()
+        obj.save_db()
+        obj.marshall_index()
+        obj.save_index()
+        return obj
+
+
+class UserTwitterDMDelivery(object):
+    """Twitter Direct Message delivery processing"""
+
+    def __init__(self, user):
+        self.user = user
+
+    def process_raw(self, raw_msg_id):
+        raw = RawMessage.get(raw_msg_id)
+        if not raw:
+            log.error('Raw message <{}> not found'.format(raw_msg_id))
+            raise NotFound
+        log.debug('Retrieved raw message {}'.format(raw_msg_id))
+
+        qualifier = UserDMQualifier(self.user)
         message = qualifier.process_inbound(raw)
 
         # store and index message

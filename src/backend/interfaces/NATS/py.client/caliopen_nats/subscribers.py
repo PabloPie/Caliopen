@@ -8,7 +8,7 @@ import json
 from caliopen_main.user.core import User
 from caliopen_main.contact.objects import Contact
 
-from caliopen_nats.delivery import UserMessageDelivery
+from caliopen_nats.delivery import UserMessageDelivery, UserTwitterDMDelivery
 from caliopen_pi.qualifiers import ContactMessageQualifier
 from caliopen_pgp.keys import ContactPublicKeyManager
 from caliopen_main.common.core import PublicKey
@@ -70,9 +70,11 @@ class InboundTwitter(BaseHandler):
             'message': 'OK : inbound twitter message proceeded'
         }
         user = User.get(payload['user_id'])
+        deliver = UserTwitterDMDelivery(user)
         try:
-            # TODO
-            raise Exception("not implemented")
+            new_message = deliver.process_raw(payload['message_id'])
+            nats_success['message_id'] = str(new_message.message_id)
+            self.natsConn.publish(msg.reply, json.dumps(nats_success))
         except Exception as exc:
             log.error("deliver process failed : {}".format(exc))
             nats_error['error'] = str(exc.message)
