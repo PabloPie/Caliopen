@@ -8,6 +8,7 @@ package go_remoteIDs
 
 import (
 	"encoding/json"
+	"github.com/CaliOpen/Caliopen/src/backend/defs/go-objects"
 	"github.com/CaliOpen/Caliopen/src/backend/main/go.backends"
 	"github.com/CaliOpen/Caliopen/src/backend/main/go.backends/store/cassandra"
 	log "github.com/Sirupsen/logrus"
@@ -128,21 +129,16 @@ func (p *Poller) sync() {
 // natsOrdersHandler handles nats messages emitted for poller from external components
 func (p *Poller) natsOrdersHandler(msg *nats.Msg) {
 
-	//TODO : put this struct in go.objects
-	type Message struct {
-		Order        string
-		Identity     string
-		PollInterval string
-		Protocol     string
-	}
-	var order Message
+	var order objects.RemoteIDNatsMessage
 	err := json.Unmarshal(msg.Data, order)
 	if err != nil {
 		log.WithError(err).Warn("unable to unmarshal nats order")
 	}
 	switch order.Order {
-	case "update":
-		//TODO
+	case "update_interval":
+		idKey := order.UserId + order.IdentityId
+		(p.Cache[idKey]).pollInterval = order.PollInterval
+		p.UpdateJobFor(idKey)
 	case "delete":
 		//TODO
 	case "add":

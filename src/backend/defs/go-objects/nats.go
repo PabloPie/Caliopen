@@ -9,19 +9,19 @@ package objects
 // IMAPfetchOrder is model for message sent on topic 'IMAPfetcher' in NATS's queue 'IMAPworkers'
 type IMAPorder struct {
 	Order    string
-	UserId   string
 	RemoteId string
+	UserId   string
 	// optional fields sent by imapctl
-	Server   string
-	Mailbox  string
 	Login    string
+	Mailbox  string
 	Password string
+	Server   string
 }
 
 type TwitterOrder struct {
 	Order    string `json:"order"`
-	UserId   string `json:"user_id"`
 	RemoteId string `json:"remote_id"`
+	UserId   string `json:"user_id"`
 }
 
 // DeliveryAck holds reply from nats when using request/reply system for email
@@ -36,4 +36,13 @@ type Ack struct {
 	Error    error  `json:"error"`
 	Ok       bool   `json:"ok"`
 	Response string `json:"message,omitempty"`
+}
+
+// message model to send orders to remoteID worker subscriber
+type RemoteIDNatsMessage struct {
+	IdentityId   string
+	Order        string
+	PollInterval string
+	Protocol     string
+	UserId       string
 }

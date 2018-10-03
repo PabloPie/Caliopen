@@ -63,7 +63,5 @@ func (broker *TwitterBroker) ProcessInDM(userID, remoteID UUID, dm *twitter.Dire
 		infos[lastSyncInfosKey] = time.Now().Format(time.RFC3339)
 		err = broker.Store.UpdateRemoteInfosMap(userID.String(), remoteID.String(), infos)
 		return nil
-
 	}
-
 }
