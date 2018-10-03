@@ -1,0 +1,70 @@
+{
+  "created_timestamp": "1538554415664",
+  "id": "1047399250294923268",
+  "type": "message_create",
+  "message_create": {
+    "sender_id": "484004076",
+    "target": {
+      "recipient_id": "2353377708"
+    },
+    "message_data": {
+      "text": "DM 10:11 avec #hashtag citation : @mailden_fr, Ã©moti ð et image https://t.co/xD4h9OYaAH",
+      "entitites": null,
+      "attachment": {
+        "type": "media",
+        "media": {
+          "indices": [
+            64,
+            87
+          ],
+          "display_url": "pic.twitter.com/xD4h9OYaAH",
+          "expanded_url": "https://twitter.com/messages/media/1047399250294923268",
+          "url": "https://t.co/xD4h9OYaAH",
+          "id": 1047399235547811840,
+          "id_str": "1047399235547811840",
+          "media_url": "https://pbs.twimg.com/dm_gif_preview/1047399235547811840/QpKOUcJTPnY5kjBEaG5dV-TzjfRZl1nSS4ewujhBRNXaNRRr_T.jpg",
+          "media_url_https": "https://pbs.twimg.com/dm_gif_preview/1047399235547811840/QpKOUcJTPnY5kjBEaG5dV-TzjfRZl1nSS4ewujhBRNXaNRRr_T.jpg",
+          "source_status_id": 0,
+          "source_status_id_str": "",
+          "type": "animated_gif",
+          "sizes": {
+            "thumb": {
+              "w": 150,
+              "h": 150,
+              "resize": "crop"
+            },
+            "large": {
+              "w": 538,
+              "h": 438,
+              "resize": "fit"
+            },
+            "medium": {
+              "w": 538,
+              "h": 438,
+              "resize": "fit"
+            },
+            "small": {
+              "w": 538,
+              "h": 438,
+              "resize": "fit"
+            }
+          },
+          "video_info": {
+            "aspect_ratio": [
+              269,
+              219
+            ],
+            "duration_millis": 0,
+            "variants": [
+              {
+                "content_type": "video/mp4",
+                "bitrate": 0,
+                "url": "https://video.twimg.com/dm_gif/1047399235547811840/QpKOUcJTPnY5kjBEaG5dV-TzjfRZl1nSS4ewujhBRNXaNRRr_T.mp4"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
