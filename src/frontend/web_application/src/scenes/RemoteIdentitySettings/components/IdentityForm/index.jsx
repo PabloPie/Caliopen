@@ -1,8 +1,17 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { Trans } from 'lingui-react';
-import { RadioFieldGroup, Button, Section, FormGrid, FormRow, FormColumn, Link, Callout } from '../../../../components';
+import { RadioFieldGroup, Button, Section, FormGrid, FormRow, FormColumn, Link, Callout, Icon } from '../../../../components';
+import { PROTOCOL_IMAP, PROTOCOL_GMAIL, PROTOCOL_TWITTER } from '../../../../modules/remoteIdentity';
 import RemoteIdentityEmail from '../RemoteIdentityEmail';
+import RemoteIdentityGmail from '../RemoteIdentityGmail';
+import RemoteIdentityTwitter from '../RemoteIdentityTwitter';
+
+const iconTypeProtocols = {
+  [PROTOCOL_IMAP]: 'email',
+  [PROTOCOL_GMAIL]: 'google',
+  [PROTOCOL_TWITTER]: 'twitter',
+};
 
 class IdentityForm extends Component {
   static propTypes = {
@@ -42,13 +51,15 @@ class IdentityForm extends Component {
 
   handleChange = async (...params) => {
     const { onRemoteIdentityChange } = this.props;
-    await onRemoteIdentityChange(...params);
+    const result = await onRemoteIdentityChange(...params);
 
     if (this.state.newRemoteIdentity) {
       this.setState({
         newRemoteIdentity: undefined,
       });
     }
+
+    return result;
   }
 
   handleCancel = () => {
@@ -62,24 +73,32 @@ class IdentityForm extends Component {
       onRemoteIdentityDelete,
     } = this.props;
 
+    const renderComponent = C => (
+      <C
+        key={remoteIdentity.identity_id || 'new'}
+        remoteIdentity={remoteIdentity}
+        onChange={this.handleChange}
+        onDelete={onRemoteIdentityDelete}
+        onCancel={this.handleCancel}
+      />
+    );
+
     switch (remoteIdentity.protocol) {
       default:
-      case 'imap':
-        return (
-          <RemoteIdentityEmail
-            key={remoteIdentity.identity_id || 'new'}
-            remoteIdentity={remoteIdentity}
-            onChange={this.handleChange}
-            onDelete={onRemoteIdentityDelete}
-            onCancel={this.handleCancel}
-          />
-        );
+      case PROTOCOL_IMAP:
+        return renderComponent(RemoteIdentityEmail);
+      case PROTOCOL_GMAIL:
+        return renderComponent(RemoteIdentityGmail);
+      case PROTOCOL_TWITTER:
+        return renderComponent(RemoteIdentityTwitter);
     }
   }
 
   renderCreate() {
     const options = [
-      { value: 'imap', label: (<Trans id="remote_identity.protocol.mail">Mail</Trans>) },
+      { value: PROTOCOL_IMAP, label: (<Fragment><Icon type={iconTypeProtocols[PROTOCOL_IMAP]} rightSpaced /><Trans id="remote_identity.protocol.mail">Mail</Trans></Fragment>) },
+      { value: PROTOCOL_GMAIL, label: (<Fragment><Icon type={iconTypeProtocols[PROTOCOL_GMAIL]} rightSpaced /><Trans id="remote_identity.protocol.gmail">Gmail</Trans></Fragment>) },
+      { value: PROTOCOL_TWITTER, label: (<Fragment><Icon type={iconTypeProtocols[PROTOCOL_TWITTER]} rightSpaced /><Trans id="remote_identity.protocol.twitter">Twitter</Trans></Fragment>) },
     ];
 
     return (
@@ -129,6 +148,13 @@ class IdentityForm extends Component {
     );
   }
 
+  renderTitle = remoteIdentity => (
+    <Fragment>
+      <Icon type={iconTypeProtocols[remoteIdentity.protocol]} rightSpaced />
+      {remoteIdentity.display_name}
+    </Fragment>
+  );
+
   render() {
     const remoteIdentity = this.props.remoteIdentity || this.state.newRemoteIdentity;
     if (remoteIdentity) {
@@ -136,7 +162,7 @@ class IdentityForm extends Component {
 
       return (
         <Section
-          title={remoteIdentity.display_name}
+          title={this.renderTitle(remoteIdentity)}
           borderContext={context}
         >
           {this.renderType(remoteIdentity)}

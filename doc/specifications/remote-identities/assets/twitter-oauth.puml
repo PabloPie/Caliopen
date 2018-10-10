@@ -1,10 +1,4 @@
-# DM Twitter
-
-The following sequence as mostly been made using [this twitter signin guide](https://developer.twitter.com/en/docs/twitter-for-websites/log-in-with-twitter/guides/implementing-sign-in-with-twitter).
-
-**FIXME:** _generate img using puml_
-```puml
-//@startuml
+@startuml
 title Add Twitter as remote identity
 actor "Authenticated user" as user
 participant "Client" as client
@@ -32,4 +26,4 @@ backend -> user: 200
 user -> user: close popup
 
 backend -> client: notify success
-```
+@enduml

@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Trans, withI18n } from 'lingui-react';
-import { Callout, Confirm, Button, TextFieldGroup, SelectFieldGroup, CheckboxFieldGroup, FormGrid, FormRow, FormColumn, FieldErrors } from '../../../../components';
-import LastConnection from '../LastConnection';
+import { Confirm, Button, TextFieldGroup, SelectFieldGroup, CheckboxFieldGroup, FormGrid, FormRow, FormColumn, FieldErrors } from '../../../../components';
+import { REMOTE_IDENTITY_STATUS_ACTIVE, REMOTE_IDENTITY_STATUS_INACTIVE, PROTOCOL_IMAP, Identity } from '../../../../modules/remoteIdentity';
+import Phase0 from '../Phase0';
+import Status from '../Status';
 import './style.scss';
 
 const MAX_PHASE = 3;
-const MAIL_PROTOCOLS = ['imap'];
-const REMOTE_IDENTITY_STATUS = ['active', 'inactive'];
-const IDENTITY_TYPE_REMOTE = 'remote';
+const MAIL_PROTOCOLS = [PROTOCOL_IMAP];
 
 function generateStateFromProps(props, prevState) {
   const {
@@ -18,7 +18,9 @@ function generateStateFromProps(props, prevState) {
     },
   } = props;
   const [inserverHostname = '', inserverPort = ''] = infos && infos.inserver ? infos.inserver.split(':') : [];
-  const active = status ? status === REMOTE_IDENTITY_STATUS[0] : prevState.remoteIdentity.active;
+  const active = status ?
+    status === REMOTE_IDENTITY_STATUS_ACTIVE :
+    prevState.remoteIdentity.active;
 
   return {
     phase: identityId ? 0 : 1,
@@ -40,7 +42,7 @@ function generateStateFromProps(props, prevState) {
   };
 }
 
-function getRemoteIdentityFromState(state, props) {
+function getIdentityFromState(state, props) {
   const {
     remoteIdentity: {
       identifier, inserverHostname, inserverPort, inusername, inpassword, active, protocol,
@@ -53,7 +55,7 @@ function getRemoteIdentityFromState(state, props) {
     inpassword,
   } : undefined;
 
-  return {
+  return new Identity({
     ...remoteIdentity,
     credentials,
     display_name: identifier,
@@ -63,9 +65,8 @@ function getRemoteIdentityFromState(state, props) {
       inserver: `${inserverHostname}:${inserverPort}`,
     },
     protocol,
-    status: active ? 'active' : 'inactive',
-    type: remoteIdentity.type || IDENTITY_TYPE_REMOTE,
-  };
+    status: active ? REMOTE_IDENTITY_STATUS_ACTIVE : REMOTE_IDENTITY_STATUS_INACTIVE,
+  });
 }
 
 @withI18n()
@@ -92,7 +93,7 @@ class RemoteIdentityEmail extends Component {
       inusername: '',
       inpassword: '',
       active: true,
-      type: 'imap',
+      protocol: PROTOCOL_IMAP,
     },
   };
 
@@ -127,11 +128,15 @@ class RemoteIdentityEmail extends Component {
   }
 
   handleSave = async () => {
+    const { remoteIdentity } = this.props;
+
     try {
       await this.props.onChange({
-        remoteIdentity: getRemoteIdentityFromState(this.state, this.props),
+        identity: getIdentityFromState(this.state, this.props),
       });
-      this.setState({ phase: 0 });
+      if (remoteIdentity.identity_id) {
+        this.setState({ phase: 0 });
+      }
     } catch (errs) {
       if (errs.some(err => err.code === 6)) {
         this.setState({
@@ -147,7 +152,7 @@ class RemoteIdentityEmail extends Component {
   }
 
   handleDelete = () => {
-    this.props.onDelete({ remoteIdentity: getRemoteIdentityFromState(this.state, this.props) });
+    this.props.onDelete({ identity: getIdentityFromState(this.state, this.props) });
   }
 
   handleCancel = () => {
@@ -168,16 +173,14 @@ class RemoteIdentityEmail extends Component {
     }));
   }
 
-  handleActivate = (event) => {
-    const { checked } = event.target;
-
+  handleActivate = (active) => {
     this.setState(prevState => ({
       remoteIdentity: {
         ...prevState.remoteIdentity,
-        active: checked,
+        active,
       },
     }), () => {
-      this.props.onChange({ remoteIdentity: getRemoteIdentityFromState(this.state, this.props) });
+      this.props.onChange({ identity: getIdentityFromState(this.state, this.props) });
     });
   }
 
@@ -186,8 +189,7 @@ class RemoteIdentityEmail extends Component {
 
     const phaseValidation = (properties) => {
       properties.forEach(({ formProperty, error }) => {
-        const value = !!this.state.remoteIdentity
-          && this.state.remoteIdentity[formProperty];
+        const value = this.state.remoteIdentity[formProperty];
 
         if (!value || value.length === 0) {
           this.setState(prevState => ({
@@ -232,50 +234,16 @@ class RemoteIdentityEmail extends Component {
     return isValid;
   }
 
-  renderStatus = (status) => {
-    const statusLabels = {
-      active: (<Trans id="remote_identity.status.active">Enabled</Trans>),
-      inactive: (<Trans id="remote_identity.status.inactive">Disabled</Trans>),
-    };
-
-    return statusLabels[status];
-  }
-
   renderFormPhase0() {
     const { remoteIdentity } = this.props;
 
-    if (!remoteIdentity.identity_id) {
-      return null;
-    }
-
     return (
-      <FormGrid>
-        <FormRow>
-          <FormColumn bottomSpace>
-            <Trans id="remote_identity.last_connection">Last connection: <LastConnection lastCheck={remoteIdentity.last_check} /></Trans>
-          </FormColumn>
-        </FormRow>
-        {remoteIdentity.infos.lastFetchError && (
-          <FormRow>
-            <FormColumn bottomSpace>
-              <Callout color="alert">{remoteIdentity.infos.lastFetchError}</Callout>
-            </FormColumn>
-          </FormRow>
-        )}
-        <FormRow>
-          <FormColumn bottomSpace>
-            <CheckboxFieldGroup
-              checked={this.state.remoteIdentity.active}
-              errors={this.state.formErrors.status}
-              onChange={this.handleActivate}
-              name="active"
-              label={this.renderStatus(this.state.remoteIdentity.active ? 'active' : 'inactive')}
-              displaySwitch
-              showTextLabel
-            />
-          </FormColumn>
-        </FormRow>
-      </FormGrid>
+      <Phase0
+        onToggleActivate={this.handleActivate}
+        remoteIdentity={remoteIdentity}
+        active={this.state.remoteIdentity.active}
+        errors={this.state.formErrors}
+      />
     );
   }
 
@@ -308,7 +276,7 @@ class RemoteIdentityEmail extends Component {
                 errors={this.state.formErrors.status}
                 onChange={this.handleParamsChange}
                 name="active"
-                label={this.renderStatus(this.state.remoteIdentity.active ? 'active' : 'inactive')}
+                label={<Status status={this.state.remoteIdentity.active ? 'active' : 'inactive'} />}
                 displaySwitch
                 showTextLabel
               />

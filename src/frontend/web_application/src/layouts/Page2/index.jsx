@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import { Brand, Link } from '../../components/';
+import { AppLoader } from '../../modules/appLoader';
 import { BackgroundImage } from '../../modules/pi';
 import { TabProvider } from '../../modules/tab';
 import { PageActions } from '../../modules/control';

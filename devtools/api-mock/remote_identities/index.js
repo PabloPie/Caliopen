@@ -14,13 +14,23 @@ const selectors = {
   last: () => state => [...state.remote_identities].pop(),
   lastLocation: () => createSelector(
     selectors.last(),
-    ({ identity_id }) => ({ location: `/api/v2/remote_identity/${identity_id}`, identity_id })
+    ({ identity_id }) => ({
+      location: `/api/v2/remote_identity/${identity_id}`,
+      identity_id,
+      // FIXME: to del; backend inconsistency for now
+      remote_id: identity_id,
+    })
   ),
-  byId: ({ message_id }) => createSelector(
+  byId: ({ identity_id }) => createSelector(
     selectors.all(),
-    remoteIdentity => remoteIdentity.find(message => message.message_id === message_id)
+    remoteIdentity => remoteIdentity.find(identity => identity.identity_id === identity_id)
   ),
 };
+
+const gmailOauthCallback = 'http://localhost:4000/api/v2/oauth/gmail/callback';
+const gmailClientId = '261426400689-n1ck0s7b1umej9u0fbe5ccj1tq1od48e.apps.googleusercontent.com';
+const gmailPopupUrl =  `https://accounts.google.com/o/oauth2/v2/auth?scope=https://mail.google.com/&access_type=offline&include_granted_scopes=true&state=state_parameter_passthrough_value&redirect_uri=${gmailOauthCallback}&response_type=code&client_id=${gmailClientId}`;
+const twitterPopupUrl = 'https://api.twitter.com/oauth/authorize?oauth_token=<token>';
 
 const reducer = {
   [actions.get]: state => state,
@@ -29,6 +39,11 @@ const reducer = {
     {
       identity_id: uuidv1(),
       ...body,
+      infos: {
+        ...body.infos,
+        ...(body.protocol === 'gmail' ? { authorization_popup_url: gmailPopupUrl } : {}),
+        ...(body.protocol === 'twitter' ? { authorization_popup_url: twitterPopupUrl } : {}),
+      },
     }
   ]),
   [actions.patch]: (state, { params, body }) => {

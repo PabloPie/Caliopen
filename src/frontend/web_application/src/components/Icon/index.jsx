@@ -36,6 +36,7 @@ export const typeAssoc = {
   facebook: 'fa fa-facebook',
   filter: 'fa fa-filter',
   folder: 'fa fa-folder-open',
+  google: 'fa fa-google',
   home: 'fa fa-home',
   'info-circle': 'fa fa-info-circle',
   key: 'fa fa-key',

@@ -5,13 +5,14 @@ import './style.scss';
 
 class Spinner extends PureComponent {
   static propTypes = {
-    isLoading: PropTypes.bool.isRequired,
+    isLoading: PropTypes.bool,
     height: PropTypes.number,
     width: PropTypes.number,
     display: PropTypes.oneOf(['inline', 'inline-block']),
     className: PropTypes.string,
   };
   static defaultProps = {
+    isLoading: true,
     height: 14,
     width: 14,
     display: 'inline-block',
@@ -29,7 +30,11 @@ class Spinner extends PureComponent {
       }),
     };
 
-    return isLoading && (
+    if (!isLoading) {
+      return null;
+    }
+
+    return (
       <span {...spinnerProps}>
         <span className="m-spinner__icon">
           <svg
