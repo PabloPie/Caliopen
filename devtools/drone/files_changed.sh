@@ -13,7 +13,8 @@ fi
 
 if [ "$DRONE_BUILD_EVENT" = "pull_request" ];
 then
-	BRANCHES="$DRONE_BRANCH...FETCH_HEAD"
+	git fetch origin --no-tags $DRONE_BRANCH:$DRONE_BRANCH
+	BRANCHES="$DRONE_BRANCH...HEAD"
 elif [ $(git show --no-patch --format="%P" $DRONE_COMMIT | awk '{print NF}') = 2 ];
 then
 	# Two parents means merge commit

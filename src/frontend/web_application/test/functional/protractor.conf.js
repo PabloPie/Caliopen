@@ -66,6 +66,8 @@ if (process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY) {
   cfg.sauceSeleniumAddress = process.env.SAUCE_ADDRESS + ':' + process.env.SAUCE_PORT + '/wd/hub';
   cfg.sauceSeleniumUseHttp = true;
   const branch = process.env.DRONE_BRANCH;
+  const prNumber = process.env.DRONE_PULL_REQUEST;
+  const name = `CaliOpen e2e - ${prNumber ? `#${prNumber}` : branch}`;
 
   cfg.multiCapabilities = [
     // {
@@ -73,35 +75,35 @@ if (process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY) {
     //   platform: 'Linux',
     //   version: '48.0',
     //   'tunnel-identifier': 'caliopen',
-    //   name: `CaliOpen e2e - ${branch}`,
+    //   name,
     // },
     {
       browserName: 'firefox',
       platform: 'Linux',
       version: '45.0',
       'tunnel-identifier': 'caliopen',
-      name: `CaliOpen e2e - ${branch}`,
+      name,
     },
     // {
     //   browserName: 'chrome',
     //   platform: 'Windows 10',
     //   version: '68.0',
     //   'tunnel-identifier': 'caliopen',
-    //   name: `CaliOpen e2e - ${branch}`,
+    //   name,
     // },
     // {
     //   browserName: 'MicrosoftEdge',
     //   platform: 'Windows 10',
     //   version: '16.16299',
     //   'tunnel-identifier': 'caliopen',
-    //   name: `CaliOpen e2e - ${branch}`,
+    //   name,
     // },
     // {
     //   browserName: 'safari',
     //   platform: 'macOS 10.13',
     //   version: '11.1',
     //   'tunnel-identifier': 'caliopen',
-    //   name: `CaliOpen e2e - ${branch}`,
+    //   name,
     // }
   ];
 }
