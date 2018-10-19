@@ -40,7 +40,7 @@ class NotificationForm extends Component {
     const messagePreviewOptions = this.getOptionsFromArray(MESSAGE_PREVIEW);
     const delayDisappearOptions = DELAY_DISAPPEAR.map(delay => ({
       value: delay,
-      label: i18n._('settings.notification.delay_disappear.options.second', null, { values: { 0: delay }, defaults: '{0} Seconds' }),
+      label: i18n._('settings.notification.delay_disappear.options.second', { 0: delay }, { defaults: '{0} Seconds' }),
     }));
 
     return (

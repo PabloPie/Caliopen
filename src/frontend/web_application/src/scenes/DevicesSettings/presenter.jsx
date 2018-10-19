@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { Trans } from '@lingui/react';
+import { Trans } from '@lingui/macro'; // eslint-disable-line import/no-extraneous-dependencies
 import { PageTitle, Section } from '../../components/';
 import DeviceSettings from './components/DeviceSettings';
 import './style.scss';

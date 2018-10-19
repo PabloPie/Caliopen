@@ -15,6 +15,7 @@ describe('Create new contact', () => {
   it('Creates a new contact', async () => {
     const name = 'Foobar';
     await element(by.css('.m-navbar-item .m-link[title="Contacts"]')).click();
+    await browser.wait(EC.presenceOf($('.s-contact-book__action-button')), 1000);
     await element(by.cssContainingText('.s-contact-book__action-button', 'Add')).click();
     await browser.wait(EC.presenceOf($('.s-contact .m-contact-profile-form')), 1000);
     await element(by.css('.m-contact-profile-form__input input[name="given_name"]')).sendKeys(name);

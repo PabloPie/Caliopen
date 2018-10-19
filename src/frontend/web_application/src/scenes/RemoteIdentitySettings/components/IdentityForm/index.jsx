@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Trans } from '@lingui/react';
+import { Trans } from '@lingui/macro'; // eslint-disable-line import/no-extraneous-dependencies
 import { RadioFieldGroup, Button, Section, FormGrid, FormRow, FormColumn, Link, Callout } from '../../../../components';
 import RemoteIdentityEmail from '../RemoteIdentityEmail';
 
