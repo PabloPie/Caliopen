@@ -7,16 +7,6 @@ clone:
     image: plugins/git
     depth: 10
     recursive: false
-    when:
-      branch: [ develop, master ]
-      event: [ push ]
-
-  git:
-    image: plugins/git
-    depth: 10
-    recursive: false
-    when:
-      event: [ pull_request, tag, deployment ]
 
 pipeline:
 
