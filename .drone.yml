@@ -28,6 +28,7 @@ pipeline:
     when:
       branch: [ develop, master ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - . devtools/drone/files_changed.sh
       - . devtools/drone/build_images.sh
@@ -57,6 +58,7 @@ pipeline:
     when:
       branch: [ develop, master ]
       event: [ pull_request ]
+      status: [ failure, success]
     commands:
       - . devtools/drone/files_changed.sh
       - . devtools/drone/test_py.sh
@@ -67,6 +69,7 @@ pipeline:
     when:
       branch: [ develop, master ]
       event: [ pull_request ]
+      status: [ failure, success]
     secrets: [ SAUCE_USERNAME , SAUCE_ACCESS_KEY, SAUCE_ADDRESS ]
     environment:
       - SAUCE_PORT=4445
@@ -96,6 +99,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/get_py_dependencies.sh # Get the list of dependencies
@@ -117,6 +121,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/get_py_dependencies.sh # Get the list of dependencies
@@ -138,6 +143,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/get_py_dependencies.sh # Get the list of dependencies
@@ -160,6 +166,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/get_go_dependencies.sh
@@ -181,6 +188,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/get_go_dependencies.sh
@@ -202,6 +210,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/get_go_dependencies.sh
@@ -223,6 +232,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/get_go_dependencies.sh
@@ -244,6 +254,7 @@ pipeline:
     when:
       branch: [ develop ]
       event: [ push ]
+      status: [ failure, success]
     commands:
       - export PLUGIN_TAGS=develop,${DRONE_COMMIT_SHA}
       - . devtools/drone/files_changed.sh
@@ -264,6 +275,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}
@@ -278,6 +290,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}
@@ -292,6 +305,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}
@@ -306,6 +320,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}
@@ -320,6 +335,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}
@@ -334,6 +350,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}
@@ -348,6 +365,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}
@@ -362,6 +380,7 @@ pipeline:
     when:
       ref: [ "refs/tags/release-*" ]
       event: [ tag ]
+      status: [ failure, success]
     tags:
       - latest
       - ${DRONE_TAG##release-}

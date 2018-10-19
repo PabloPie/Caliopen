@@ -13,8 +13,8 @@ mkdir -p /srv/src/$BASE_PACKAGE
 cp -a /srv/caliopen/. /srv/src/$BASE_PACKAGE && cd /srv/src
 
 # Install depth for go dependencies
-wget -q https://github.com/KyleBanks/depth/releases/download/v1.2.1/depth_1.2.1_linux_amd64
-mv depth_1.2.1_linux_amd64 /usr/bin/depth && chmod +x /usr/bin/depth
+wget -q https://github.com/KyleBanks/depth/releases/download/v1.2.1/depth_1.2.1_linux_amd64 -o /usr/bin/depth
+chmod +x /usr/bin/depth
 
 # It first filters govendor packages, then non-Caliopen packages, seds out special chars,
 # cuts path to get path from src directory and makes a list of the dependencies
